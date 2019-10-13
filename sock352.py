@@ -26,7 +26,6 @@ def init(UDPportTx,UDPportRx):   # initialize your UDP socket here
         udpPortTx = int(UDPportRx)
     else:
         udpPortTx = int(UDPportTx)
-
     #udpSock = syssock.socket(syssock.AF_INET, syssock.SOCK_DGRAM)
     udpSock.bind(('', udpPortRx))
     udpSock.settimeout(0.2);
@@ -34,7 +33,13 @@ def init(UDPportTx,UDPportRx):   # initialize your UDP socket here
     pass
 
 class socket:
-    def updateStruct():
+    def updateStruct(newFlags, newHeader_len, newSeqNo, newAckNo, newPayloadLen):
+        global version, opt_ptr, protocol, checksum, source_port, dest_port, window, udpSock
+        flags = newFlags
+        header_len = newHeader_len
+        sequence_no = newSeqNo
+        ack_no = newAckNo
+        payload_len = newPayloadLen
         udpPkt_hdr_data = struct.Struct(sock352PktHdrData)
         return udpPkt_hdr_data.pack(version, flags, opt_ptr, protocol, header_len, checksum, source_port, dest_port, sequence_no, ack_no, window, payload_len)
 
