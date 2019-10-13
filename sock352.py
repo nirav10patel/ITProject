@@ -15,7 +15,11 @@ udpSock = syssock.socket(syssock.AF_INET, syssock.SOCK_DGRAM)   #this is the mai
 
 def init(UDPportTx,UDPportRx):   # initialize your UDP socket here
     udpPortRx = int(UDPportRx)
-    udpPortTx = int(UDPportTx)
+    if(UDPportTx == ''):
+        udpPortTx = int(UDPportRx)
+    else:
+        udpPortTx = int(UDPportTx)
+
     #udpSock = syssock.socket(syssock.AF_INET, syssock.SOCK_DGRAM)
     udpSock.bind(('', udpPortRx))
     udpSock.settimeout(0.2);
