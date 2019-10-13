@@ -10,12 +10,12 @@ import sys
 sock352PktHdrData = '!BBBBHHLLQQLL'
 udpPortTx = 0   #this is the UDPportTX we get as input from client/server to the global init() function
 udpPortRx = 0   #this is the UDPportTX we get as input from client/server to the global init() function
+#here we declare that we are going to be using UDP
 udpSock = syssock.socket(syssock.AF_INET, syssock.SOCK_DGRAM)   #this is the main socket we will be using with UDP
 
 def init(UDPportTx,UDPportRx):   # initialize your UDP socket here
     udpPortRx = int(UDPportRx)
     udpPortTx = int(UDPportTx)
-    #here we declare that we are going to be using UDP
     #udpSock = syssock.socket(syssock.AF_INET, syssock.SOCK_DGRAM)
     udpSock.bind(('', udpPortRx))
     udpSock.settimeout(0.2);
