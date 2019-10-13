@@ -13,17 +13,12 @@ udpPortRx = 0   #this is the UDPportTX we get as input from client/server to the
 #here we declare that we are going to be using UDP
 udpSock = syssock.socket(syssock.AF_INET, syssock.SOCK_DGRAM)   #this is the main socket we will be using with UDP
 version = 0x1
-flags
 opt_ptr = 0x0
 protocol = 0x0
-header_len
 checksum = 0x0
 source_port = 0x0
 dest_port = 0x0
-sequence_no
-ack_no
 window = 0x0
-payload_len
 
 def init(UDPportTx,UDPportRx):   # initialize your UDP socket here
     udpPortRx = int(UDPportRx)
