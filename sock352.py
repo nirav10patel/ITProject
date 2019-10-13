@@ -19,6 +19,7 @@ checksum = 0x0
 source_port = 0x0
 dest_port = 0x0
 window = 0x0
+seqNum = 0
 
 def init(UDPportTx,UDPportRx):   # initialize your UDP socket here
     udpPortRx = int(UDPportRx)
@@ -50,6 +51,7 @@ class socket:
         return
 
     def connect(self,address):  # fill in your code here
+        global udpSock, seqNum
         return
 
     def listen(self,backlog):
