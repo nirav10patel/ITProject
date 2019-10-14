@@ -85,12 +85,16 @@ class socket:
         return (clientsocket,address)
 
     def getData(self):
-        global udpSock, sock352PktHdrData, otherHostAddress, deliveredData
+        global udpSock, sock352PktHdrData, recAddress, deliveredData
         (message, sendAddress) = udpSock.recvfrom(4096)
-        header = message[:40]
-        info = message[40:]
-        if(header[1] == SOCK352_SYN):
+        head = message[:40]
+        body = message[40:]
+        if(head[1] == "SOCK352_SYN"):
+            print("SYN")
             recAddress = sendAddress
+        elif(head[1] == "SOCK352_ACK"):
+            print("ACK")
+
 
 
 
