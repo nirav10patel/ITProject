@@ -19,6 +19,7 @@ checksum = 0x0
 source_port = 0x0
 dest_port = 0x0
 window = 0x0
+header_len = 40
 seqNum = 0
 
 def init(UDPportTx,UDPportRx):   # initialize your UDP socket here
@@ -34,65 +35,44 @@ def init(UDPportTx,UDPportRx):   # initialize your UDP socket here
     pass
 
 class socket:
-    def updateStruct(newFlags, newHeader_len, newSeqNo, newAckNo, newPayloadLen):
+    def updateStruct(self, newFlags, newHeader_len, newSeqNo, newAckNo, newPayloadLen):
         global version, opt_ptr, protocol, checksum, source_port, dest_port, window, udpSock
         flags = newFlags
         header_len = newHeader_len
         sequence_no = newSeqNo
         ack_no = newAckNo
         payload_len = newPayloadLen
-        return struct.Struct(sock352PktHdrData).pack(version, flags, opt_ptr, protocol, header_len, checksum,
-                                                     source_port, dest_port, sequence_no, ack_no, window, payload_len)
+        udpPkt_hdr_data = struct.Struct(sock352PktHdrData)
+        return udpPkt_hdr_data.pack(version, flags, opt_ptr, protocol, header_len, checksum, source_port, dest_port, sequence_no, ack_no, window, payload_len)
 
     def __init__(self):  # fill in your code here
-        print("INIT")
         return
 
     def bind(self,address):
-        print("BIND")
         return
 
     def connect(self,address):  # fill in your code here
-        global udpSock, seqNum, header_len
-        seqNum = int(random.randint(20, 100))
-        data = self.updateStruct(header_len, seqNum, 0, 0)
-        ackServer = -1;
-        while true:
-            print("CONNECTING")
-            udpSock.sendto(data, (address[0], udpPortTx))
-            serverData = self.getData()
-            ackServer = serverData[9]
-            if ackServer == seqNum:
-                print("SUCCESSFUL CONNECT")
-                break
-            else:
-                print("FAILED CONNECT TRYING AGAIN")
-                print("ACK: " + ackServer + " SEQ: " + seqNum)
-        udpSock.connect((address[0], udpPortTx))
-        seqNum = seqNum + 1
+        global udpSock, seqNum
         return
 
     def listen(self,backlog):
-        print("LISTEN")
         return
 
     def accept(self):
         #in this method, we must use the recvfrom(), its like the linnux call
         #that is how we know that an object of class sock352 somewhere has sent something
-        global udpSock, udpPortRx, seqNum
-        while()
+        global udpSock, udpPortRx, seqNum, header_len
+
+        updatedStruct = ""
+        while(true):
+            updatedStruct = self.getData()
+            if(updatedStruct[1] == 0x01):
+                seqNum = updatedStruct[8]
+                break
+
+        struct = self.updateStruct(0x04, header_len, seqNum, 0, 13)
         (clientsocket, address) = (1,1)  # change this to your code
         return (clientsocket,address)
-
-    def getData(self):
-        global udpSock, sock352PktHdrData, otherHostAddress, deliveredData
-        (message, sendAddress) = udpSock.recvfrom(4096)
-        header = message[:40]
-        info = message[40:]
-        if(header[1] == SOCK352_SYN):
-            recAddress = sendAddress
-
-
 
     def close(self):   # fill in your code here
         return
