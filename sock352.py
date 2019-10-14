@@ -9,10 +9,10 @@ import random
 # and received from
 
 sock352PktHdrData = '!BBBBHHLLQQLL'
-udpPortTx = 0   #this is the UDPportTX we get as input from client/server to the global init() function
-udpPortRx = 0   #this is the UDPportTX we get as input from client/server to the global init() function
+udpPortTx = -1   #this is the UDPportTX we get as input from client/server to the global init() function
+udpPortRx = -1   #this is the UDPportTX we get as input from client/server to the global init() function
 #here we declare that we are going to be using UDP
-udpSock = syssock.socket(syssock.AF_INET, syssock.SOCK_DGRAM)   #this is the main socket we will be using with UDP
+# udpSock = syssock.socket(syssock.AF_INET, syssock.SOCK_DGRAM)   #this is the main socket we will be using with UDP
 version = 0x1
 opt_ptr = 0x0
 protocol = 0x0
@@ -32,15 +32,16 @@ SOCK352_RESET = 0x08
 SOCK352_HAS_OPT = 0xA0
 
 def init(UDPportTx,UDPportRx):   # initialize your UDP socket here
+    global udpSock, udpPortRx, udpPortTx
+    udpSock = syssock.socket(syssock.AF_INET, syssock.SOCK_DGRAM)
     udpPortRx = int(UDPportRx)
     if(UDPportTx == ''):
         udpPortTx = int(UDPportRx)
     else:
         udpPortTx = int(UDPportTx)
-    #udpSock = syssock.socket(syssock.AF_INET, syssock.SOCK_DGRAM)
+
     udpSock.bind(('', udpPortRx))
     udpSock.settimeout(5);
-    print("It worked")
     pass
 
 class socket:
@@ -65,20 +66,28 @@ class socket:
         seqNum = int(random.randint(20, 100))
         data = self.updateStruct(SOCK352_SYN, header_len, seqNum, 0, 0)
         ackServer = -1;
+        seqNumServer = 0;
         while True:
-            print("CONNECTING")
-            udpSock.sendto(data, (address[0], udpPortTx))
+            print("Sent SYN to server")
+            udpSock.sendto(data,(address[0],udpPortTx))
             #print("\tRequesting a new connection...%d bytes sent!" % (udpSock.sendto(data, (address[0], udpPortTx) ) ) )
             serverData = self.getData()
             ackServer = serverData[9]
             if ackServer == seqNum + 1:
-                print("SUCCESSFUL CONNECT")
+                seqNumServer = serverData[8] + 1
+                print("Received SYN-ACK from server")
                 break
             else:
-                print("FAILED CONNECT TRYING AGAIN")
-                print("ACK: " + str(ackServer) + " SEQ: " + str(seqNum))
+                print("Failed to receive SYN-ACK")
+                #print("ACK: " + str(ackServer) + " SEQ: " + str(seqNum))
+
+        ackData = self.updateStruct(SOCK352_ACK, header_len, seqNum, seqNumServer, 0)
+        udpSock.sendto(ackData, (address[0], udpPortTx))
+        print("Sent ACK to server")
+
         udpSock.connect((address[0], udpPortTx))
         seqNum = seqNum + 1
+        print("Connection Established")
         return
 
     def listen(self,backlog):
@@ -87,21 +96,25 @@ class socket:
     def accept(self):
         #in this method, we must use the recvfrom(), its like the linnux call
         #that is how we know that an object of class sock352 somewhere has sent something
-        global udpSock, udpPortRx, seqNum, header_len
+        global udpSock, udpPortRx, seqNum, header_len, recAddress
 
         updatedStruct = ""
         while(True):
             updatedStruct = self.getData()
-            if(updatedStruct[1] == SOCK352_SYN):
+            flag = updatedStruct[1]
+            if(flag == SOCK352_SYN):
+                print("Received SYN from client")
                 seqNum = updatedStruct[8]
                 break
         newSeqNum = int(random.randint(20, 100))
         struct = self.updateStruct(SOCK352_SYN + SOCK352_ACK, header_len, newSeqNum, seqNum+1, 8)
         udpSock.sendto(struct + "Accepted", recAddress)
+        print("Sending SYN-ACK to client")
 
         while(True):
             updatedStruct = self.getData()
             if(updatedStruct[1] == SOCK352_ACK):
+                print("Received ACK from client")
                 seqNum = updatedStruct[8]
                 break
         #connection established, no they can communicate safely
@@ -117,18 +130,12 @@ class socket:
         except syssock.timeout:
             print("No packets received")
             return[0,0,0,0,0,0,0,0,0,0,0,0]
-        #(head, body) = (message[:40], message[40:])
-        # head = message[:40]
-        # body = message[40:]
+        (head, body) = (message[:40], message[40:])
         deliveredData = struct.unpack(sock352PktHdrData, head)
-        if(head[1] == SOCK352_SYN):
-            print("SYN")
+        if(head[1] == SOCK352_SYN or SOCK352_SYN + SOCK352_ACK):
             recAddress = sendAddress
             return deliveredData
-        if(head[1] == SOCK352_SYN + SOCK352_ACK):
-            print("SYN + ACK")
-            recAddress = sendAddress
-            return deliveredData
+        return deliveredData
 
     def close(self):   # fill in your code here
         return
