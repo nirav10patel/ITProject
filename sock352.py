@@ -23,7 +23,7 @@ window = 0x0
 header_len = 40
 seqNum = 0
 recAddress = ""
-receivedStruct = ""
+receivedData = ""
 
 SOCK352_SYN = 0x01
 SOCK352_FIN = 0x02
@@ -124,18 +124,18 @@ class socket:
         return (clientsocket,address)
 
     def getData(self):
-        global udpSock, sock352PktHdrData, recAddress, receivedStruct
+        global udpSock, sock352PktHdrData, recAddress, receivedData
         try:
             (message, sendAddress) = udpSock.recvfrom(4096)
         except syssock.timeout:
             print("No packets received")
             return[0,0,0,0,0,0,0,0,0,0,0,0]
         (head, body) = (message[:40], message[40:])
-        receivedStruct = struct.unpack(sock352PktHdrData, head)
+        newStruct = struct.unpack(sock352PktHdrData, head)
         if(head[1] == SOCK352_SYN or SOCK352_SYN + SOCK352_ACK):
             recAddress = sendAddress
-            return receivedStruct
-        return receivedStruct
+            return newStruct
+        return newStruct
 
     def close(self):   # fill in your code here
         return
@@ -145,6 +145,8 @@ class socket:
         return bytesent
 
     def recv(self,nbytes):
-        global seqNum, udpSock,
+        global seqNum, udpSock, receivedData
+        receivedData = ""
+        message = ""
         bytesreceived = 0     # fill in your code here
         return bytesreceived
