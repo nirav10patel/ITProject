@@ -24,6 +24,7 @@ header_len = 40
 seqNum = 0
 recAddress = ""
 receivedData = ""
+closeAddress = ""
 
 
 SOCK352_SYN = 0x01
@@ -31,6 +32,7 @@ SOCK352_FIN = 0x02
 SOCK352_ACK = 0x04
 SOCK352_RESET = 0x08
 SOCK352_HAS_OPT = 0xA0
+SOCK352_SENTDATA = 0x123
 type = ""
 client = 1
 server = 2
@@ -66,7 +68,8 @@ class socket:
         return
 
     def connect(self,address):  # fill in your code here
-        global udpSock, seqNum, header_len, type
+        print("Attempting Connection")
+        global udpSock, seqNum, header_len, type, udpPortTx
         type = client
         seqNum = int(random.randint(20, 100))
         data = self.updateStruct(SOCK352_SYN, header_len, seqNum, 0, 0)
@@ -101,6 +104,7 @@ class socket:
     def accept(self):
         #in this method, we must use the recvfrom(), its like the linnux call
         #that is how we know that an object of class sock352 somewhere has sent something
+        print("Attempting Connection")
         global udpSock, udpPortRx, seqNum, header_len, recAddress, type
         type = server
         updatedStruct = ""
@@ -111,7 +115,7 @@ class socket:
                 print("Received SYN from client")
                 seqNum = updatedStruct[8]
                 break
-        newSeqNum = int(random.randint(20, 100))
+        newSeqNum = int(random.randint(10, 500))
         struct = self.updateStruct(SOCK352_SYN + SOCK352_ACK, header_len, newSeqNum, seqNum+1, 8)
         udpSock.sendto(struct + "Accepted", recAddress)
         print("Sending SYN-ACK to client")
@@ -129,7 +133,7 @@ class socket:
         return (clientsocket,address)
 
     def getData(self):
-        global udpSock, sock352PktHdrData, recAddress, receivedData
+        global udpSock, sock352PktHdrData, recAddress, receivedData, closeAddress
         try:
             (message, sendAddress) = udpSock.recvfrom(4096)
         except syssock.timeout:
@@ -137,14 +141,85 @@ class socket:
             return[0,0,0,0,0,0,0,0,0,0,0,0]
         (head, body) = (message[:40], message[40:])
         newStruct = struct.unpack(sock352PktHdrData, head)
-        if(head[1] == SOCK352_SYN or SOCK352_SYN + SOCK352_ACK):
+        if(head[1] == SOCK352_SYN or SOCK352_SYN + SOCK352_ACK or SOCK352_FIN or SOCK352_FIN + SOCK352_ACK):
+            closeAddress = sendAddress
             recAddress = sendAddress
+            return newStruct
+        elif(head[1] == SOCK352_SENTDATA):
+            receivedData = body
+            return newStruct
+        elif(head[1] == SOCK352_FIN or SOCK352_FIN + SOCK352_ACK):
+            closeAddress = sendAddress
             return newStruct
         return newStruct
 
     def close(self):   # fill in your code here
-        global udpSock, type
-        print("Attempting to close connection")
+        global type
+        if(type == client):
+            print("\nAttempting to disconnect from Server")
+            self.closeClient()
+        elif(type == server):
+            print("\nAttemping to disconnect from Client")
+            self.closeServer()
+        return
+
+    def closeClient(self):
+        global udpSock, header_len, udpPortTx, recAddress, closeAddress
+        #Send FIN
+        #Receive ACK
+        #Receive FIN
+        #Send ACK
+        closeNum = random.randint(10,500)
+        FINstruct = self.updateStruct(SOCK352_FIN, header_len, closeNum, 0, 0)
+        ackServer = -1
+        closeNumServ = 0;
+        while True:
+            print("Sent FIN to server")
+            udpSock.sendto(FINstruct, recAddress)
+            serverData = self.getData()
+            ackServer = serverData[9]
+            if ackServer == closeNum + 1:
+                closeNumServ = serverData[8] + 1
+                print("Recieved FIN-ACK from server")
+                break
+            else:
+                print("Failed to receive FIN-ACK")
+
+        ackData = self.updateStruct(SOCK352_ACK, header_len, closeNum, closeNumServ, 0)
+        udpSock.sendto(ackData, closeAddress)
+        print("Sent ACK to server")
+        udpSock.close()
+        print("Disconnected Successfully")
+        return
+
+
+    def closeServer(self):
+        #Receive FIN
+        #Send ACK
+        #Send FIN
+        #Receive ACK
+        global udpSock, udpPortRx, header_len, closeAddress
+        updatedStruct = ""
+        updatedSeqNum = 0
+        while(True):
+            updatedStruct = self.getData()
+            flag = updatedStruct[1]
+            if(flag == SOCK352_FIN):
+                print("Recieved FIN from client")
+                updatedSeqNum = updatedStruct[8]
+                break
+        closeNum = int(random.randint(10, 500))
+        FIN_ACKstruct = self.updateStruct(SOCK352_FIN + SOCK352_ACK, header_len, closeNum, updatedSeqNum + 1, 8)
+        udpSock.sendto(FIN_ACKstruct + "Accepted", closeAddress)
+        print("Sending FIN-ACK to client")
+
+        while True:
+            updateStruct = self.getData()
+            if(updateStruct[1] == SOCK352_ACK):
+                print("Received ACK from client")
+                break
+        udpSock.close()
+        print("Disconnected Successfully")
 
         return
 

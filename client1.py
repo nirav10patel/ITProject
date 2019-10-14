@@ -63,6 +63,7 @@ def main():
 
     s = sock352.socket()
     s.connect((destination,port))
+    s.close()
 
 
     longPacker = struct.Struct("!L")
@@ -98,6 +99,3 @@ def main():
 # this gives a main function in Python
 if __name__ == "__main__":
     main()
-
-
-    
