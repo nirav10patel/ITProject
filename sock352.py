@@ -97,8 +97,6 @@ class socket:
         (message, sendAddress) = udpSock.recvfrom(4096)
         head = message[:40]
         body = message[40:]
-<<<<<<< HEAD
-        
         deliveredData = struct.unpack(sock352PktHdrData, head)
         if(head[1] == SOCK352_SYN):
             print("SYN")
@@ -108,7 +106,6 @@ class socket:
             print("SYN + ACK")
             recAddress = sendAddress
             return deliveredData
->>>>>>> c7f238a6e74ce49f71b329133e2a406bcc0a55f2
 
 
         updatedStruct = ""
