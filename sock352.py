@@ -41,8 +41,8 @@ class socket:
         sequence_no = newSeqNo
         ack_no = newAckNo
         payload_len = newPayloadLen
-        udpPkt_hdr_data = struct.Struct(sock352PktHdrData)
-        return udpPkt_hdr_data.pack(version, flags, opt_ptr, protocol, header_len, checksum, source_port, dest_port, sequence_no, ack_no, window, payload_len)
+        return struct.Struct(sock352PktHdrData).pack(version, flags, opt_ptr, protocol, header_len, checksum,
+                                                     source_port, dest_port, sequence_no, ack_no, window, payload_len)
 
     def __init__(self):  # fill in your code here
         return
@@ -51,7 +51,21 @@ class socket:
         return
 
     def connect(self,address):  # fill in your code here
-        global udpSock, seqNum
+        global udpSock, seqNum, header_len
+        seqNum = int(random.randint(20, 100))
+        data = self.updateStruct(header_len, seqNum, 0, 0)
+        ackServer = -1;
+        while true:
+            udpSock.sendto(data, (address[0], udpPortTx))
+            serverData = self.getData()
+            ackServer = serverData[9]
+            if ackServer == seqNum:
+                print("Got ack from server")
+                break
+            else:
+                print("The ack is: " + ackServer + " The seqNum is: " + seqNum)
+        udpSock.connect((address[0], udpPortTx))
+        seqNum = seqNum + 1
         return
 
     def listen(self,backlog):
