@@ -24,6 +24,12 @@ seqNum = 0
 recAddress = ""
 deliveredData = ""
 
+SOCK352_SYN = 0x01           
+SOCK352_FIN = 0x02
+SOCK352_ACK = 0x04
+SOCK352_RESET = 0x08
+SOCK352_HAS_OPT = 0xA0
+
 def init(UDPportTx,UDPportRx):   # initialize your UDP socket here
     udpPortRx = int(UDPportRx)
     if(UDPportTx == ''):
