@@ -103,15 +103,15 @@ class socket:
         (message, sendAddress) = udpSock.recvfrom(4096)
         head = message[:40]
         body = message[40:]
-        data = struct.unpack(sock352PktHdrData, head)
+        deliveredData = struct.unpack(sock352PktHdrData, head)
         if(head[1] == SOCK352_SYN):
             print("SYN")
             recAddress = sendAddress
-            return data
+            return deliveredData
         if(head[1] == SOCK352_SYN + SOCK352_ACK)
             print("SYN + ACK")
             recAddress = sendAddress
-            return data
+            return deliveredData
 
 
         return data
