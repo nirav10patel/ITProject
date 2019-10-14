@@ -45,9 +45,11 @@ class socket:
                                                      source_port, dest_port, sequence_no, ack_no, window, payload_len)
 
     def __init__(self):  # fill in your code here
+        print("INIT")
         return
 
     def bind(self,address):
+        print("BIND")
         return
 
     def connect(self,address):  # fill in your code here
@@ -56,19 +58,22 @@ class socket:
         data = self.updateStruct(header_len, seqNum, 0, 0)
         ackServer = -1;
         while true:
+            print("CONNECTING")
             udpSock.sendto(data, (address[0], udpPortTx))
             serverData = self.getData()
             ackServer = serverData[9]
             if ackServer == seqNum:
-                print("Got ack from server")
+                print("SUCCESSFUL CONNECT")
                 break
             else:
-                print("The ack is: " + ackServer + " The seqNum is: " + seqNum)
+                print("FAILED CONNECT TRYING AGAIN")
+                print("ACK: " + ackServer + " SEQ: " + seqNum)
         udpSock.connect((address[0], udpPortTx))
         seqNum = seqNum + 1
         return
 
     def listen(self,backlog):
+        print("LISTEN")
         return
 
     def accept(self):
@@ -78,6 +83,16 @@ class socket:
         while()
         (clientsocket, address) = (1,1)  # change this to your code
         return (clientsocket,address)
+
+    def getData(self):
+        global udpSock, sock352PktHdrData, otherHostAddress, deliveredData
+        (message, sendAddress) = udpSock.recvfrom(4096)
+        header = message[:40]
+        info = message[40:]
+        if(header[1] == SOCK352_SYN):
+            recAddress = sendAddress
+
+
 
     def close(self):   # fill in your code here
         return
