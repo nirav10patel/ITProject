@@ -21,6 +21,8 @@ dest_port = 0x0
 window = 0x0
 header_len = 40
 seqNum = 0
+recAddress = ""
+deliveredData = ""
 
 def init(UDPportTx,UDPportRx):   # initialize your UDP socket here
     udpPortRx = int(UDPportRx)
@@ -62,11 +64,9 @@ class socket:
             serverData = self.getData()
             ackServer = serverData[9]
             if ackServer == seqNum:
-                print("Got ack from server")
                 print("SUCCESSFUL CONNECT")
                 break
             else:
-                print("The ack is: " + ackServer + " The seqNum is: " + seqNum)
                 print("FAILED CONNECT TRYING AGAIN")
                 print("ACK: " + ackServer + " SEQ: " + seqNum)
         udpSock.connect((address[0], udpPortTx))
@@ -106,18 +106,6 @@ class socket:
             print("SYN + ACK")
             recAddress = sendAddress
             return deliveredData
-
-
-        updatedStruct = ""
-        while(true):
-            updatedStruct = self.getData()
-            if(updatedStruct[1] == 0x01):
-                seqNum = updatedStruct[8]
-                break
-
-        struct = self.updateStruct(0x04, header_len, seqNum, 0, 13)
-        (clientsocket, address) = (1,1)  # change this to your code
-        return (clientsocket,address)
 
     def close(self):   # fill in your code here
         return
