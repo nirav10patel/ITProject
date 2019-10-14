@@ -25,11 +25,15 @@ seqNum = 0
 recAddress = ""
 receivedData = ""
 
+
 SOCK352_SYN = 0x01
 SOCK352_FIN = 0x02
 SOCK352_ACK = 0x04
 SOCK352_RESET = 0x08
 SOCK352_HAS_OPT = 0xA0
+type = ""
+client = 1
+server = 2
 
 def init(UDPportTx,UDPportRx):   # initialize your UDP socket here
     global udpSock, udpPortRx, udpPortTx
@@ -62,7 +66,8 @@ class socket:
         return
 
     def connect(self,address):  # fill in your code here
-        global udpSock, seqNum, header_len
+        global udpSock, seqNum, header_len, type
+        type = client
         seqNum = int(random.randint(20, 100))
         data = self.updateStruct(SOCK352_SYN, header_len, seqNum, 0, 0)
         ackServer = -1;
@@ -96,8 +101,8 @@ class socket:
     def accept(self):
         #in this method, we must use the recvfrom(), its like the linnux call
         #that is how we know that an object of class sock352 somewhere has sent something
-        global udpSock, udpPortRx, seqNum, header_len, recAddress
-
+        global udpSock, udpPortRx, seqNum, header_len, recAddress, type
+        type = server
         updatedStruct = ""
         while(True):
             updatedStruct = self.getData()
@@ -138,6 +143,9 @@ class socket:
         return newStruct
 
     def close(self):   # fill in your code here
+        global udpSock, type
+        print("Attempting to close connection")
+
         return
 
     def send(self,buffer):
