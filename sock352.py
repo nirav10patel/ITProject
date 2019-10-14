@@ -155,6 +155,20 @@ class socket:
     def recv(self,nbytes):
         global seqNum, udpSock, receivedData
         receivedData = ""
-        message = ""
-        bytesreceived = 0     # fill in your code here
-        return bytesreceived
+        finalData = ""
+        counter = 0
+        while(counter != nbytes):
+            recvSeqNum = -1
+            while(recvSeqNum != seqNum):
+                newStruct = self.getData()
+                #at this point, receivedData is loaded with the actual data
+                recvSeqNum = newStruct[8]
+            #at this point, we received the correct seqNum, so we must send and ack for it
+            #also increment teh counter
+            newStruct = self.updateStruct(SOCK352_ACK, header_len, 0, seqNum,0)
+            updSock.sendTo(newStruct, recaddress)
+            counter += len(receivedDate)
+            finalData += receivedData
+            seqNum += 1
+        #bytesreceived = 0     # fill in your code here
+        return finalData
