@@ -60,7 +60,7 @@ class socket:
     def accept(self):
         #in this method, we must use the recvfrom(), its like the linnux call
         #that is how we know that an object of class sock352 somewhere has sent something
-        global udpSock, udpPortRx,
+        global udpSock, udpPortRx, seqNum
         while()
         (clientsocket, address) = (1,1)  # change this to your code
         return (clientsocket,address)
