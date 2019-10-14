@@ -24,7 +24,7 @@ seqNum = 0
 recAddress = ""
 deliveredData = ""
 
-SOCK352_SYN = 0x01           
+SOCK352_SYN = 0x01
 SOCK352_FIN = 0x02
 SOCK352_ACK = 0x04
 SOCK352_RESET = 0x08
@@ -90,11 +90,21 @@ class socket:
         updatedStruct = ""
         while(true):
             updatedStruct = self.getData()
-            if(updatedStruct[1] == 1):
+            if(updatedStruct[1] == SOCK352_SYN):
                 seqNum = updatedStruct[8]
                 break
         newSeqNum = int(random.randint(20, 100))
-        struct = self.updateStruct(4, header_len, newSeqNum, seqNum+1, 13)
+        struct = self.updateStruct(SOCK352_SYN + SOCK352_ACK, header_len, newSeqNum, seqNum+1, 8)
+        udpSock.sendto(struct + "Accepted", recAddress)
+
+        while(true):
+            updatedStruct = self.getData()
+            if(updatedStruct[1] == SOCK352_ACK):
+                seqNum = updatedStruct[8]
+                break
+        #connection established, no they can communicate safely
+        seqNum = seqNum+1
+        print("Connection Established")
         (clientsocket, address) = (socket(), recAddress)  # change this to your code
         return (clientsocket,address)
 
