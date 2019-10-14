@@ -84,12 +84,12 @@ class socket:
         updatedStruct = ""
         while(true):
             updatedStruct = self.getData()
-            if(updatedStruct[1] == 0x01):
+            if(updatedStruct[1] == 1):
                 seqNum = updatedStruct[8]
                 break
         newSeqNum = int(random.randint(20, 100))
-        struct = self.updateStruct(0x04, header_len, newSeqNum, seqNum+1, 13)
-        (clientsocket, address) = (socket(),1)  # change this to your code
+        struct = self.updateStruct(4, header_len, newSeqNum, seqNum+1, 13)
+        (clientsocket, address) = (socket(), recAddress)  # change this to your code
         return (clientsocket,address)
 
     def getData(self):
