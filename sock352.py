@@ -2,6 +2,7 @@ import binascii
 import socket as syssock
 import struct
 import sys
+import random
 
 # these functions are global to the class and
 # define the UDP ports all messages are sent
@@ -38,7 +39,7 @@ def init(UDPportTx,UDPportRx):   # initialize your UDP socket here
         udpPortTx = int(UDPportTx)
     #udpSock = syssock.socket(syssock.AF_INET, syssock.SOCK_DGRAM)
     udpSock.bind(('', udpPortRx))
-    udpSock.settimeout(0.2);
+    udpSock.settimeout(5);
     print("It worked")
     pass
 
@@ -62,19 +63,20 @@ class socket:
     def connect(self,address):  # fill in your code here
         global udpSock, seqNum, header_len
         seqNum = int(random.randint(20, 100))
-        data = self.updateStruct(header_len, seqNum, 0, 0)
+        data = self.updateStruct(SOCK352_SYN, header_len, seqNum, 0, 0)
         ackServer = -1;
-        while true:
+        while True:
             print("CONNECTING")
             udpSock.sendto(data, (address[0], udpPortTx))
+            #print("\tRequesting a new connection...%d bytes sent!" % (udpSock.sendto(data, (address[0], udpPortTx) ) ) )
             serverData = self.getData()
             ackServer = serverData[9]
-            if ackServer == seqNum:
+            if ackServer == seqNum + 1:
                 print("SUCCESSFUL CONNECT")
                 break
             else:
                 print("FAILED CONNECT TRYING AGAIN")
-                print("ACK: " + ackServer + " SEQ: " + seqNum)
+                print("ACK: " + str(ackServer) + " SEQ: " + str(seqNum))
         udpSock.connect((address[0], udpPortTx))
         seqNum = seqNum + 1
         return
@@ -88,7 +90,7 @@ class socket:
         global udpSock, udpPortRx, seqNum, header_len
 
         updatedStruct = ""
-        while(true):
+        while(True):
             updatedStruct = self.getData()
             if(updatedStruct[1] == SOCK352_SYN):
                 seqNum = updatedStruct[8]
@@ -97,7 +99,7 @@ class socket:
         struct = self.updateStruct(SOCK352_SYN + SOCK352_ACK, header_len, newSeqNum, seqNum+1, 8)
         udpSock.sendto(struct + "Accepted", recAddress)
 
-        while(true):
+        while(True):
             updatedStruct = self.getData()
             if(updatedStruct[1] == SOCK352_ACK):
                 seqNum = updatedStruct[8]
@@ -110,15 +112,20 @@ class socket:
 
     def getData(self):
         global udpSock, sock352PktHdrData, recAddress, deliveredData
-        (message, sendAddress) = udpSock.recvfrom(4096)
-        head = message[:40]
-        body = message[40:]
+        try:
+            (message, sendAddress) = udpSock.recvfrom(4096)
+        except syssock.timeout:
+            print("No packets received")
+            return[0,0,0,0,0,0,0,0,0,0,0,0]
+        #(head, body) = (message[:40], message[40:])
+        # head = message[:40]
+        # body = message[40:]
         deliveredData = struct.unpack(sock352PktHdrData, head)
         if(head[1] == SOCK352_SYN):
             print("SYN")
             recAddress = sendAddress
             return deliveredData
-        if(head[1] == SOCK352_SYN + SOCK352_ACK)
+        if(head[1] == SOCK352_SYN + SOCK352_ACK):
             print("SYN + ACK")
             recAddress = sendAddress
             return deliveredData
