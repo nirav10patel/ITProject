@@ -22,6 +22,12 @@ window = 0x0
 header_len = 40
 seqNum = 0
 
+recAddress = ""
+deliveredData = ""
+SOCK352_SYN = 0x01
+SOCK352_FIN = 0x02
+SOCK352_ACK = 0x04
+
 def init(UDPportTx,UDPportRx):   # initialize your UDP socket here
     udpPortRx = int(UDPportRx)
     if(UDPportTx == ''):
@@ -46,9 +52,11 @@ class socket:
         return udpPkt_hdr_data.pack(version, flags, opt_ptr, protocol, header_len, checksum, source_port, dest_port, sequence_no, ack_no, window, payload_len)
 
     def __init__(self):  # fill in your code here
+        print("INITIALIZING")
         return
 
     def bind(self,address):
+        print("BINDING")
         return
 
     def connect(self,address):  # fill in your code here
@@ -62,11 +70,9 @@ class socket:
             serverData = self.getData()
             ackServer = serverData[9]
             if ackServer == seqNum:
-                print("Got ack from server")
                 print("SUCCESSFUL CONNECT")
                 break
             else:
-                print("The ack is: " + ackServer + " The seqNum is: " + seqNum)
                 print("FAILED CONNECT TRYING AGAIN")
                 print("ACK: " + ackServer + " SEQ: " + seqNum)
         udpSock.connect((address[0], udpPortTx))
@@ -97,23 +103,23 @@ class socket:
         (message, sendAddress) = udpSock.recvfrom(4096)
         head = message[:40]
         body = message[40:]
-        if(head[1] == "SOCK352_SYN"):
+        data = struct.unpack(sock352PktHdrData, head)
+        if(head[1] == SOCK352_SYN):
             print("SYN")
             recAddress = sendAddress
-        elif(head[1] == "SOCK352_ACK"):
-            print("ACK")
+            return data
+        if(head[1] == SOCK352_SYN + SOCK352_ACK)
+            print("SYN + ACK")
+            recAddress = sendAddress
+            return data
 
 
-        updatedStruct = ""
-        while(true):
-            updatedStruct = self.getData()
-            if(updatedStruct[1] == 0x01):
-                seqNum = updatedStruct[8]
-                break
+        return data
+        # except syssock.timeout:
+        #     print("\t\tNo packets received before the timeout!")
+        #     z = [0,0,0,0,0,0,0,0,0,0,0,0]
+        #     return z
 
-        struct = self.updateStruct(0x04, header_len, seqNum, 0, 13)
-        (clientsocket, address) = (1,1)  # change this to your code
-        return (clientsocket,address)
 
     def close(self):   # fill in your code here
         return
