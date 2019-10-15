@@ -4,6 +4,7 @@ import struct
 import sys
 import random
 import threading
+import time
 # these functions are global to the class and
 # define the UDP ports all messages are sent
 # and received from
@@ -225,10 +226,52 @@ class socket:
         return
 
     def send(self,buffer):
-        global seqNum, udpSock
-        
+        global seqNum, udpSock, ackNum
+        seqNum = 0
+        finalData = [buffer[i:i+32] for i in range(0, len(buffer), 32)]
+        lock = threading.Lock()
+        sendDataThread = threading.Thread(target = sendData, arg=(lock, finalData))
+        ackDataThread = threading.Thread(target = ackData, arg=(lock, finalData))
+
+        sendDataThread.start()
+        ackDataThread.start()
+
         bytessent = 0     # fill in your code here
         return bytesent
+
+    def sendData(self, lock, finalData):
+        while True:
+            lock.acquire()
+            if(seqNum == len(finalData)+1):
+                if(ackNum == seqNum-1):
+                    break
+                else
+                    #so here we need to wait for the thread in ackData to call out of this loop after a possible timeout
+                    while True:
+                        if(seqNum <= len(finalData)):
+                            break
+            currPayLoad = finalData[seqNum]
+            currPayLoadLen = len(currPayLoad)
+            newStruct = self.updateStruct(0x03, header_len, seqNum, 0, currPayLoadLen);
+            udpSock.send(newStruct+currPayLoad)
+            seqNum++;
+            lock.release()
+        pass
+
+    def ackData(self, lock, finalData):
+        global seqNum, lastAck
+        #timer = threading.Timer(0.2, timer)
+        #timer.start()
+        t0 = time.time()
+        while True:
+            newStruct = self.getData()
+            lastAck = newStruct[9]
+            if(newStruct[0] == 0 && time.time() >= t0+0.2):
+                lock.acquire()
+                seqNum = lastAck+1
+                t0 = time.time()
+                lock.release()            
+        pass
 
     def recv(self,nbytes):
         global seqNum, udpSock, receivedData
