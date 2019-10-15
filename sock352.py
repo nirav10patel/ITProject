@@ -14,7 +14,6 @@ udpPortTx = -1   #this is the UDPportTX we get as input from client/server to th
 udpPortRx = -1   #this is the UDPportTX we get as input from client/server to the global init() function
 #here we declare that we are going to be using UDP
 # udpSock = syssock.socket(syssock.AF_INET, syssock.SOCK_DGRAM)   #this is the main socket we will be using with UDP
-udpSock = (0,0)
 version = 0x1
 opt_ptr = 0x0
 protocol = 0x0
@@ -229,10 +228,13 @@ class socket:
     def send(self,buffer):
         global seqNum, udpSock, ackNum
         seqNum = 0
-        finalData = [buffer[i:i+32] for i in range(0, len(buffer), 32)]
+        #print(str("original buffer is: "), buffer)
+        # finalData = [buffer[i:i+32] for i in range(0, len(buffer), 32)]
+        #print(finalData)
+
         lock = threading.Lock()
-        sendDataThread = threading.Thread(target = self.sendData, args=(lock, finalData))
-        ackDataThread = threading.Thread(target = self.ackData, args=(lock, finalData))
+        sendDataThread = threading.Thread(target = self.sendData, args=(lock, buffer))
+        ackDataThread = threading.Thread(target = self.ackData, args=(lock, buffer))
 
         sendDataThread.start()
         ackDataThread.start()
@@ -241,10 +243,19 @@ class socket:
         ackDataThread.join()
 
         bytessent = len(buffer)     # fill in your code here
-        return bytesent
+        return bytessent
 
-    def sendData(self, lock, finalData):
+    def sendData(self, lock, buffer):
         global udpSock, seqNum, ackNum
+        #print(buffer)
+        finalData = [buffer[i:i+32] for i in range(0, len(buffer), 32)]
+        #print(finalData)
+
+
+        # for i in range(0, len(finalData)):
+        #     print(finalData[i])
+
+
         while True:
             lock.acquire()
             if(seqNum == len(finalData)+1):
@@ -255,6 +266,8 @@ class socket:
                     while True:
                         if(seqNum <= len(finalData)):
                             break
+            print(str(len(finalData)), " and seqNum: " , str(seqNum))
+            print(str(finalData[seqNum]))
             currPayLoad = finalData[seqNum]
             currPayLoadLen = len(currPayLoad)
             newStruct = self.updateStruct(0x03, header_len, seqNum, 0, currPayLoadLen);
@@ -263,10 +276,9 @@ class socket:
             lock.release()
         pass
 
-    def ackData(self, lock, finalData):
+    def ackData(self, lock, buffer):
         global seqNum, lastAck
-        #timer = threading.Timer(0.2, timer)
-        #timer.start()
+        finalData = [buffer[i:i+32] for i in range(0, len(buffer), 32)]
         t0 = time.time()
         while True:
             newStruct = self.getData()
@@ -276,10 +288,13 @@ class socket:
                 seqNum = lastAck+1
                 t0 = time.time()
                 lock.release()
+
+            if(lastAck == len(finalData)):
+                break
         pass
 
     def recv(self,nbytes):
-        global seqNum, udpSock, receivedData
+        global seqNum, udpSock, receivedData, recAddress
         seqNum = 0
         receivedData = ""
         finalData = ""
@@ -293,8 +308,8 @@ class socket:
             #at this point, we received the correct seqNum, so we must send and ack for it
             #also increment teh counter
             newStruct = self.updateStruct(SOCK352_ACK, header_len, 0, seqNum,0)
-            updSock.sendTo(newStruct, recaddress)
-            counter += len(receivedDate)
+            udpSock.sendto(newStruct, recAddress)
+            counter += len(receivedData)
             finalData += receivedData
             seqNum += 1
         #bytesreceived = 0     # fill in your code here
