@@ -3,7 +3,7 @@ import socket as syssock
 import struct
 import sys
 import random
-
+import threading
 # these functions are global to the class and
 # define the UDP ports all messages are sent
 # and received from
@@ -36,6 +36,7 @@ SOCK352_SENTDATA = 0x123
 type = ""
 client = 1
 server = 2
+ackNum = 0
 
 def init(UDPportTx,UDPportRx):   # initialize your UDP socket here
     global udpSock, udpPortRx, udpPortTx
@@ -224,11 +225,14 @@ class socket:
         return
 
     def send(self,buffer):
+        global seqNum, udpSock
+        
         bytessent = 0     # fill in your code here
         return bytesent
 
     def recv(self,nbytes):
         global seqNum, udpSock, receivedData
+        seqNum = 0
         receivedData = ""
         finalData = ""
         counter = 0
