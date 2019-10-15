@@ -14,6 +14,7 @@ udpPortTx = -1   #this is the UDPportTX we get as input from client/server to th
 udpPortRx = -1   #this is the UDPportTX we get as input from client/server to the global init() function
 #here we declare that we are going to be using UDP
 # udpSock = syssock.socket(syssock.AF_INET, syssock.SOCK_DGRAM)   #this is the main socket we will be using with UDP
+udpSock = (0,0)
 version = 0x1
 opt_ptr = 0x0
 protocol = 0x0
@@ -230,8 +231,8 @@ class socket:
         seqNum = 0
         finalData = [buffer[i:i+32] for i in range(0, len(buffer), 32)]
         lock = threading.Lock()
-        sendDataThread = threading.Thread(target = sendData, arg=(lock, finalData))
-        ackDataThread = threading.Thread(target = ackData, arg=(lock, finalData))
+        sendDataThread = threading.Thread(target = self.sendData, args=(lock, finalData))
+        ackDataThread = threading.Thread(target = self.ackData, args=(lock, finalData))
 
         sendDataThread.start()
         ackDataThread.start()
@@ -243,6 +244,7 @@ class socket:
         return bytesent
 
     def sendData(self, lock, finalData):
+        global udpSock, seqNum, ackNum
         while True:
             lock.acquire()
             if(seqNum == len(finalData)+1):
@@ -257,7 +259,7 @@ class socket:
             currPayLoadLen = len(currPayLoad)
             newStruct = self.updateStruct(0x03, header_len, seqNum, 0, currPayLoadLen);
             udpSock.send(newStruct+currPayLoad)
-            seqNum++;
+            seqNum += 1
             lock.release()
         pass
 
@@ -269,7 +271,7 @@ class socket:
         while True:
             newStruct = self.getData()
             lastAck = newStruct[9]
-            if(newStruct[0] == 0 && time.time() >= t0+0.2):
+            if(newStruct[0] == 0 and time.time() >= t0+0.2):
                 lock.acquire()
                 seqNum = lastAck+1
                 t0 = time.time()

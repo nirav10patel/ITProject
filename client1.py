@@ -63,7 +63,6 @@ def main():
 
     s = sock352.socket()
     s.connect((destination,port))
-    s.close()
 
 
     longPacker = struct.Struct("!L")
