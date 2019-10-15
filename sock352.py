@@ -248,7 +248,7 @@ class socket:
             if(seqNum == len(finalData)+1):
                 if(ackNum == seqNum-1):
                     break
-                else
+                else:
                     #so here we need to wait for the thread in ackData to call out of this loop after a possible timeout
                     while True:
                         if(seqNum <= len(finalData)):
