@@ -236,7 +236,10 @@ class socket:
         sendDataThread.start()
         ackDataThread.start()
 
-        bytessent = 0     # fill in your code here
+        sendDataThread.join()
+        ackDataThread.join()
+
+        bytessent = len(buffer)     # fill in your code here
         return bytesent
 
     def sendData(self, lock, finalData):
@@ -270,7 +273,7 @@ class socket:
                 lock.acquire()
                 seqNum = lastAck+1
                 t0 = time.time()
-                lock.release()            
+                lock.release()
         pass
 
     def recv(self,nbytes):
