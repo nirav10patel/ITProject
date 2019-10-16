@@ -49,7 +49,7 @@ def init(UDPportTx,UDPportRx):   # initialize your UDP socket here
         udpPortTx = int(UDPportTx)
 
     udpSock.bind(('', udpPortRx))
-    udpSock.settimeout(5);
+    udpSock.settimeout(1);
     pass
 
 class socket:
@@ -143,16 +143,17 @@ class socket:
             return[0,0,0,0,0,0,0,0,0,0,0,0]
         (head, body) = (message[:40], message[40:])
         newStruct = struct.unpack(sock352PktHdrData, head)
-        if(head[1] == SOCK352_SYN or SOCK352_SYN + SOCK352_ACK or SOCK352_FIN or SOCK352_FIN + SOCK352_ACK):
+        if(head[1] == SOCK352_SYN or  SOCK352_ACK or SOCK352_SYN + SOCK352_ACK or SOCK352_FIN or SOCK352_FIN + SOCK352_ACK):
             closeAddress = sendAddress
             recAddress = sendAddress
+            receivedData = body;
             return newStruct
-        elif(head[1] == SOCK352_SENTDATA):
-            receivedData = body
-            return newStruct
-        elif(head[1] == SOCK352_FIN or SOCK352_FIN + SOCK352_ACK):
-            closeAddress = sendAddress
-            return newStruct
+        # elif(head[1] == SOCK352_SENTDATA):
+        #     receivedData = body
+        #     return newStruct
+        # elif(head[1] == SOCK352_FIN or SOCK352_FIN + SOCK352_ACK):
+        #     closeAddress = sendAddress
+        #     return newStruct
         return newStruct
 
     def close(self):   # fill in your code here
@@ -227,6 +228,7 @@ class socket:
 
     def send(self,buffer):
         global seqNum, udpSock, lastAck
+        lastAck = -1
         seqNum = 0
         #print(str("original buffer is: "), buffer)
         # finalData = [buffer[i:i+32] for i in range(0, len(buffer), 32)]
@@ -277,6 +279,10 @@ class socket:
                 break
             print(str(len(finalData)), " and seqNum: " , str(seqNum))
             print(str(finalData[seqNum]))
+            # dropped = random.int(1,100)
+            # if(dropped <= 5):
+            #     print("DROPPING PACKET: " + str(seqNum))
+            #     seqNum = seqNum+1
             currPayLoad = finalData[seqNum]
             currPayLoadLen = len(currPayLoad)
             newStruct = self.updateStruct(SOCK352_SENTDATA, header_len, seqNum, 0, currPayLoadLen);
@@ -291,19 +297,21 @@ class socket:
         t0 = time.time()
         while True:
             newStruct = self.getData()
-            print(str("here1"))
+            #print(str("here1"))
             lastAck = newStruct[9]
-            print(str("here2"))
+            #print(str("here2"))
             if(newStruct[0] == 0 and time.time() >= t0+0.2):
-                print(str("here3"))
+                #print(str("here3"))
                 lock.acquire()
+                print("DROPPED: " + str(seqNum))
                 seqNum = lastAck+1
-                print(str("here4"))
+                #print(str("here4"))
                 t0 = time.time()
                 lock.release()
-                print(str("here5"))
+                #print(str("here5"))
             #else:
                 #print(str("stuck here: newstruct[0] = "), str(newStruct[0]), str("ackNo: "), str(ackNo), str(" t0 = "), str(t0), str(" currtime: "), str(time.time()))
+
             if(lastAck == len(finalData)-1):
                 break
         pass
@@ -314,6 +322,7 @@ class socket:
         receivedData = ""
         finalData = ""
         counter = 0
+        #sent5 = False
         while(counter != nbytes):
             recvSeqNum = -1
             while(recvSeqNum != seqNum):
@@ -322,11 +331,20 @@ class socket:
                 recvSeqNum = newStruct[8]
             #at this point, we received the correct seqNum, so we must send and ack for it
             #also increment teh counter
+            dropped = random.randint(1,100)
+            # if(seqNum == 5 and sent5 == False):
+            #     sent5 = True
+            #     continue
             newStruct = self.updateStruct(SOCK352_ACK, header_len, 0, seqNum,0)
             udpSock.sendto(newStruct, recAddress)
             counter += len(receivedData)
             finalData += receivedData
             seqNum += 1
+            # newStruct = self.updateStruct(SOCK352_ACK, header_len, 0, seqNum,0)
+            # udpSock.sendto(newStruct, recAddress)
+            # counter += len(receivedData)
+            # finalData += receivedData
+            # seqNum += 1
             print(str("counter is = "), str(counter), str( "nbytes is = "), str(nbytes))
         #bytesreceived = 0     # fill in your code here
         print(finalData)
