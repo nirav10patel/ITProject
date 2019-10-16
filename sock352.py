@@ -33,7 +33,7 @@ SOCK352_FIN = 0x02
 SOCK352_ACK = 0x04
 SOCK352_RESET = 0x08
 SOCK352_HAS_OPT = 0xA0
-SOCK352_SENTDATA = 0x123
+SOCK352_SENTDATA = 0x23
 type = ""
 client = 1
 server = 2
@@ -279,7 +279,7 @@ class socket:
             print(str(finalData[seqNum]))
             currPayLoad = finalData[seqNum]
             currPayLoadLen = len(currPayLoad)
-            newStruct = self.updateStruct(0x03, header_len, seqNum, 0, currPayLoadLen);
+            newStruct = self.updateStruct(SOCK352_SENTDATA, header_len, seqNum, 0, currPayLoadLen);
             udpSock.send(newStruct+currPayLoad)
             seqNum += 1
             lock.release()
@@ -327,6 +327,7 @@ class socket:
             counter += len(receivedData)
             finalData += receivedData
             seqNum += 1
+            print(str("counter is = "), str(counter), str( "nbytes is = "), str(nbytes))
         #bytesreceived = 0     # fill in your code here
-        print(str(finalData))
+        print(finalData)
         return finalData
