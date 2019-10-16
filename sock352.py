@@ -37,7 +37,7 @@ SOCK352_SENTDATA = 0x123
 type = ""
 client = 1
 server = 2
-ackNum = 0
+lastAck = -1
 
 def init(UDPportTx,UDPportRx):   # initialize your UDP socket here
     global udpSock, udpPortRx, udpPortTx
@@ -226,7 +226,7 @@ class socket:
         return
 
     def send(self,buffer):
-        global seqNum, udpSock, ackNum
+        global seqNum, udpSock, lastAck
         seqNum = 0
         #print(str("original buffer is: "), buffer)
         # finalData = [buffer[i:i+32] for i in range(0, len(buffer), 32)]
@@ -246,26 +246,35 @@ class socket:
         return bytessent
 
     def sendData(self, lock, buffer):
-        global udpSock, seqNum, ackNum
+        global udpSock, seqNum, lastAck
         #print(buffer)
         finalData = [buffer[i:i+32] for i in range(0, len(buffer), 32)]
-        #print(finalData)
-
+        print(finalData)
 
         # for i in range(0, len(finalData)):
         #     print(finalData[i])
 
-
         while True:
             lock.acquire()
-            if(seqNum == len(finalData)+1):
-                if(ackNum == seqNum-1):
+            print(str("lock being acquired here1"))
+            if(seqNum == len(finalData)):
+                print("reached end of message, lastAck = ", str(lastAck), str(" finalData"), str(finalData), str(" seqNum = "), str(seqNum))
+                if(lastAck == seqNum-1):
+                    lock.release()
                     break
                 else:
                     #so here we need to wait for the thread in ackData to call out of this loop after a possible timeout
+                    lock.release()
+                    print(str("released lock for last ack"))
                     while True:
                         if(seqNum <= len(finalData)):
                             break
+                    lock.acquire()
+                    print(str("lock being acquired here2"))
+            if(seqNum == len(finalData)):
+                #at this point we have sent everything and received ack for everything
+                lock.release()
+                break
             print(str(len(finalData)), " and seqNum: " , str(seqNum))
             print(str(finalData[seqNum]))
             currPayLoad = finalData[seqNum]
@@ -282,14 +291,20 @@ class socket:
         t0 = time.time()
         while True:
             newStruct = self.getData()
+            print(str("here1"))
             lastAck = newStruct[9]
+            print(str("here2"))
             if(newStruct[0] == 0 and time.time() >= t0+0.2):
+                print(str("here3"))
                 lock.acquire()
                 seqNum = lastAck+1
+                print(str("here4"))
                 t0 = time.time()
                 lock.release()
-
-            if(lastAck == len(finalData)):
+                print(str("here5"))
+            #else:
+                #print(str("stuck here: newstruct[0] = "), str(newStruct[0]), str("ackNo: "), str(ackNo), str(" t0 = "), str(t0), str(" currtime: "), str(time.time()))
+            if(lastAck == len(finalData)-1):
                 break
         pass
 
@@ -313,4 +328,5 @@ class socket:
             finalData += receivedData
             seqNum += 1
         #bytesreceived = 0     # fill in your code here
+        print(str(finalData))
         return finalData
