@@ -27,7 +27,8 @@ recAddress = ""
 receivedData = ""
 closeAddress = ""
 
-
+DROP_PACKET_NO = 2
+PACKET_SIZE = 32000
 SOCK352_SYN = 0x01
 SOCK352_FIN = 0x02
 SOCK352_ACK = 0x04
@@ -139,7 +140,7 @@ class socket:
     def getData(self):
         global udpSock, sock352PktHdrData, recAddress, receivedData, closeAddress
         try:
-            (message, sendAddress) = udpSock.recvfrom(4096)
+            (message, sendAddress) = udpSock.recvfrom(32500)
         except syssock.timeout:
             print("No packets received")
             return[0,0,0,0,0,0,0,0,0,0,0,0]
@@ -254,7 +255,7 @@ class socket:
         allAcknowledged = False
         resend = False
         #print(buffer)
-        finalData = [buffer[i:i+32] for i in range(0, len(buffer), 32)]
+        finalData = [buffer[i:i+PACKET_SIZE] for i in range(0, len(buffer), PACKET_SIZE)]
         ##print(finalData)
         # for i in range(0, len(finalData)):
         #     print(finalData[i])
@@ -280,7 +281,7 @@ class socket:
 
     def ackData(self, lock, buffer):
         global seqNum, lastAck, allAcknowledged, resend
-        finalData = [buffer[i:i+32] for i in range(0, len(buffer), 32)]
+        finalData = [buffer[i:i+PACKET_SIZE] for i in range(0, len(buffer), PACKET_SIZE)]
         t0 = time.time()
         while True:
             newStruct = self.getData()
@@ -322,7 +323,8 @@ class socket:
             #at this point, we received the correct seqNum, so we must send and ack for it
             #also increment the counter
             dropped = random.randint(1,100)
-            if(seqNum == 5 and sent5 == False):
+            if(seqNum == DROP_PACKET_NO and sent5 == False):
+                print("did this")
                 sent5 = True
                 continue
 
