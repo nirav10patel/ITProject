@@ -38,6 +38,8 @@ type = ""
 client = 1
 server = 2
 lastAck = -1
+allAcknowledged = False
+resend = False
 
 def init(UDPportTx,UDPportRx):   # initialize your UDP socket here
     global udpSock, udpPortRx, udpPortTx
@@ -248,62 +250,46 @@ class socket:
         return bytessent
 
     def sendData(self, lock, buffer):
-        global udpSock, seqNum, lastAck
+        global udpSock, seqNum, lastAck, allAcknowledged, resend
+        allAcknowledged = False
+        resend = False
         #print(buffer)
         finalData = [buffer[i:i+32] for i in range(0, len(buffer), 32)]
-        print(finalData)
-
+        ##print(finalData)
         # for i in range(0, len(finalData)):
         #     print(finalData[i])
-
-        while True:
-            lock.acquire()
-            print(str("lock being acquired here1"))
+        while(allAcknowledged == False):
             if(seqNum == len(finalData)):
-                print("reached end of message, lastAck = ", str(lastAck), str(" finalData"), str(finalData), str(" seqNum = "), str(seqNum))
-                if(lastAck == seqNum-1):
-                    lock.release()
-                    break
-                else:
-                    #so here we need to wait for the thread in ackData to call out of this loop after a possible timeout
-                    lock.release()
-                    print(str("released lock for last ack"))
-                    while True:
-                        if(seqNum <= len(finalData)):
-                            break
-                    lock.acquire()
-                    print(str("lock being acquired here2"))
-            if(seqNum == len(finalData)):
-                #at this point we have sent everything and received ack for everything
-                lock.release()
-                break
-            print(str(len(finalData)), " and seqNum: " , str(seqNum))
-            print(str(finalData[seqNum]))
-            # dropped = random.int(1,100)
-            # if(dropped <= 5):
-            #     print("DROPPING PACKET: " + str(seqNum))
-            #     seqNum = seqNum+1
+                #the idea here is that incase seqNum == len(finalData) meaning,
+                #all data is sent as of now, then we will keep iterating through
+                #the while loop untill allAcknowledged is true or until seqNum is changed (when some packet is dropped)
+                continue
             currPayLoad = finalData[seqNum]
             currPayLoadLen = len(currPayLoad)
-            newStruct = self.updateStruct(SOCK352_SENTDATA, header_len, seqNum, 0, currPayLoadLen);
-            udpSock.send(newStruct+currPayLoad)
-            seqNum += 1
-            lock.release()
+            newStruct = self.updateStruct(SOCK352_SENTDATA, header_len, seqNum, 0, currPayLoadLen)
+            lock.acquire()
+            if(resend == True):
+                resend = False
+                lock.release()
+                continue
+            else:
+                udpSock.send(newStruct+currPayLoad)
+                seqNum += 1
+                lock.release()
         pass
 
     def ackData(self, lock, buffer):
-        global seqNum, lastAck
+        global seqNum, lastAck, allAcknowledged, resend
         finalData = [buffer[i:i+32] for i in range(0, len(buffer), 32)]
         t0 = time.time()
         while True:
             newStruct = self.getData()
             #print(str("here1"))
-            lastAck = newStruct[9]
             #print(str("here2"))
             if(newStruct[0] == 0 and time.time() >= t0+0.2):
                 #print(str("here3"))
                 lock.acquire()
-                print("DROPPED: " + str(seqNum))
+                print("DROPPED: " + str(lastAck))
                 seqNum = lastAck+1
                 #print(str("here4"))
                 t0 = time.time()
@@ -311,9 +297,12 @@ class socket:
                 #print(str("here5"))
             #else:
                 #print(str("stuck here: newstruct[0] = "), str(newStruct[0]), str("ackNo: "), str(ackNo), str(" t0 = "), str(t0), str(" currtime: "), str(time.time()))
-
-            if(lastAck == len(finalData)-1):
-                break
+            elif(newStruct[0] != 0):
+                lastAck = newStruct[9]
+                ###print("received ack no = " + str(lastAck))
+                if(lastAck == len(finalData)-1):
+                    break
+        allAcknowledged = True
         pass
 
     def recv(self,nbytes):
@@ -322,22 +311,26 @@ class socket:
         receivedData = ""
         finalData = ""
         counter = 0
-        #sent5 = False
+        sent5 = False
         while(counter != nbytes):
             recvSeqNum = -1
             while(recvSeqNum != seqNum):
                 newStruct = self.getData()
                 #at this point, receivedData is loaded with the actual data
                 recvSeqNum = newStruct[8]
+                ###print("now going in infinite loop: seqNum = " + str(seqNum) + " recvSeqNum = " + str(recvSeqNum))
             #at this point, we received the correct seqNum, so we must send and ack for it
-            #also increment teh counter
+            #also increment the counter
             dropped = random.randint(1,100)
-            # if(seqNum == 5 and sent5 == False):
-            #     sent5 = True
-            #     continue
+            if(seqNum == 5 and sent5 == False):
+                sent5 = True
+                continue
+
+            ###print("sending ackNum = " + str(seqNum))
             newStruct = self.updateStruct(SOCK352_ACK, header_len, 0, seqNum,0)
             udpSock.sendto(newStruct, recAddress)
             counter += len(receivedData)
+            ###print(receivedData)
             finalData += receivedData
             seqNum += 1
             # newStruct = self.updateStruct(SOCK352_ACK, header_len, 0, seqNum,0)
@@ -345,7 +338,10 @@ class socket:
             # counter += len(receivedData)
             # finalData += receivedData
             # seqNum += 1
-            print(str("counter is = "), str(counter), str( "nbytes is = "), str(nbytes))
+
+            ##print(str("counter is = "), str(counter), str( "nbytes is = "), str(nbytes))
+
         #bytesreceived = 0     # fill in your code here
-        print(finalData)
+
+        ##print(finalData)
         return finalData
