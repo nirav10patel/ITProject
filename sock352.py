@@ -263,6 +263,7 @@ class socket:
             newStruct = self.getData()
             if(newStruct[0] == 0 and time.time() >= t0+0.2):
                 lock.acquire()
+                resend = True
                 seqNum = lastAck+1
                 t0 = time.time()
                 lock.release()
