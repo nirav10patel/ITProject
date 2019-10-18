@@ -5,15 +5,10 @@ import sys
 import random
 import threading
 import time
-# these functions are global to the class and
-# define the UDP ports all messages are sent
-# and received from
 
 sock352PktHdrData = '!BBBBHHLLQQLL'
 udpPortTx = -1   #this is the UDPportTX we get as input from client/server to the global init() function
 udpPortRx = -1   #this is the UDPportTX we get as input from client/server to the global init() function
-#here we declare that we are going to be using UDP
-# udpSock = syssock.socket(syssock.AF_INET, syssock.SOCK_DGRAM)   #this is the main socket we will be using with UDP
 version = 0x1
 opt_ptr = 0x0
 protocol = 0x0
@@ -33,7 +28,6 @@ SOCK352_SYN = 0x01
 SOCK352_FIN = 0x02
 SOCK352_ACK = 0x04
 SOCK352_RESET = 0x08
-SOCK352_HAS_OPT = 0xA0
 SOCK352_SENTDATA = 0x23
 type = ""
 client = 1
@@ -52,7 +46,7 @@ def init(UDPportTx,UDPportRx):   # initialize your UDP socket here
         udpPortTx = int(UDPportTx)
 
     udpSock.bind(('', udpPortRx))
-    udpSock.settimeout(1);
+    udpSock.settimeout(0.2);
     pass
 
 class socket:
@@ -76,14 +70,13 @@ class socket:
         print("Attempting Connection")
         global udpSock, seqNum, header_len, type, udpPortTx
         type = client
-        seqNum = int(random.randint(20, 100))
+        seqNum = int(random.randint(10, 500))
         data = self.updateStruct(SOCK352_SYN, header_len, seqNum, 0, 0)
         ackServer = -1;
         seqNumServer = 0;
         while True:
             print("Sent SYN to server")
             udpSock.sendto(data,(address[0],udpPortTx))
-            #print("\tRequesting a new connection...%d bytes sent!" % (udpSock.sendto(data, (address[0], udpPortTx) ) ) )
             serverData = self.getData()
             ackServer = serverData[9]
             if ackServer == seqNum + 1:
@@ -92,7 +85,6 @@ class socket:
                 break
             else:
                 print("Failed to receive SYN-ACK")
-                #print("ACK: " + str(ackServer) + " SEQ: " + str(seqNum))
 
         ackData = self.updateStruct(SOCK352_ACK, header_len, seqNum, seqNumServer, 0)
         udpSock.sendto(ackData, (address[0], udpPortTx))
@@ -107,8 +99,6 @@ class socket:
         return
 
     def accept(self):
-        #in this method, we must use the recvfrom(), its like the linnux call
-        #that is how we know that an object of class sock352 somewhere has sent something
         print("Attempting Connection")
         global udpSock, udpPortRx, seqNum, header_len, recAddress, type
         type = server
@@ -131,7 +121,7 @@ class socket:
                 print("Received ACK from client")
                 seqNum = updatedStruct[8]
                 break
-        #connection established, no they can communicate safely
+
         seqNum = seqNum+1
         print("Connection Established")
         (clientsocket, address) = (socket(), recAddress)  # change this to your code
@@ -142,7 +132,6 @@ class socket:
         try:
             (message, sendAddress) = udpSock.recvfrom(32500)
         except syssock.timeout:
-            print("No packets received")
             return[0,0,0,0,0,0,0,0,0,0,0,0]
         (head, body) = (message[:40], message[40:])
         newStruct = struct.unpack(sock352PktHdrData, head)
@@ -151,12 +140,6 @@ class socket:
             recAddress = sendAddress
             receivedData = body;
             return newStruct
-        # elif(head[1] == SOCK352_SENTDATA):
-        #     receivedData = body
-        #     return newStruct
-        # elif(head[1] == SOCK352_FIN or SOCK352_FIN + SOCK352_ACK):
-        #     closeAddress = sendAddress
-        #     return newStruct
         return newStruct
 
     def close(self):   # fill in your code here
@@ -233,9 +216,6 @@ class socket:
         global seqNum, udpSock, lastAck
         lastAck = -1
         seqNum = 0
-        #print(str("original buffer is: "), buffer)
-        # finalData = [buffer[i:i+32] for i in range(0, len(buffer), 32)]
-        #print(finalData)
 
         lock = threading.Lock()
         sendDataThread = threading.Thread(target = self.sendData, args=(lock, buffer))
@@ -254,11 +234,7 @@ class socket:
         global udpSock, seqNum, lastAck, allAcknowledged, resend
         allAcknowledged = False
         resend = False
-        #print(buffer)
         finalData = [buffer[i:i+PACKET_SIZE] for i in range(0, len(buffer), PACKET_SIZE)]
-        ##print(finalData)
-        # for i in range(0, len(finalData)):
-        #     print(finalData[i])
         while(allAcknowledged == False):
             if(seqNum == len(finalData)):
                 #the idea here is that incase seqNum == len(finalData) meaning,
@@ -285,22 +261,13 @@ class socket:
         t0 = time.time()
         while True:
             newStruct = self.getData()
-            #print(str("here1"))
-            #print(str("here2"))
             if(newStruct[0] == 0 and time.time() >= t0+0.2):
-                #print(str("here3"))
                 lock.acquire()
-                print("DROPPED: " + str(lastAck))
                 seqNum = lastAck+1
-                #print(str("here4"))
                 t0 = time.time()
                 lock.release()
-                #print(str("here5"))
-            #else:
-                #print(str("stuck here: newstruct[0] = "), str(newStruct[0]), str("ackNo: "), str(ackNo), str(" t0 = "), str(t0), str(" currtime: "), str(time.time()))
             elif(newStruct[0] != 0):
                 lastAck = newStruct[9]
-                ###print("received ack no = " + str(lastAck))
                 if(lastAck == len(finalData)-1):
                     break
         allAcknowledged = True
@@ -323,27 +290,11 @@ class socket:
             #at this point, we received the correct seqNum, so we must send and ack for it
             #also increment the counter
             dropped = random.randint(1,100)
-            if(seqNum == DROP_PACKET_NO and sent5 == False):
-                print("did this")
-                sent5 = True
-                continue
-
-            ###print("sending ackNum = " + str(seqNum))
+            # if(dropped < 30):                                  #UTILIZE THIS TO TESST DROPS
+            #     continue                                       #APPROX 30% DROPPED
             newStruct = self.updateStruct(SOCK352_ACK, header_len, 0, seqNum,0)
             udpSock.sendto(newStruct, recAddress)
             counter += len(receivedData)
-            ###print(receivedData)
             finalData += receivedData
             seqNum += 1
-            # newStruct = self.updateStruct(SOCK352_ACK, header_len, 0, seqNum,0)
-            # udpSock.sendto(newStruct, recAddress)
-            # counter += len(receivedData)
-            # finalData += receivedData
-            # seqNum += 1
-
-            ##print(str("counter is = "), str(counter), str( "nbytes is = "), str(nbytes))
-
-        #bytesreceived = 0     # fill in your code here
-
-        ##print(finalData)
         return finalData
