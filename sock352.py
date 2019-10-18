@@ -67,6 +67,10 @@ class socket:
         return
 
     def connect(self,address):  # fill in your code here
+        #Send SYN
+        #Receive ACK
+        #Receive SYN
+        #Send ACK
         print("Attempting Connection")
         global udpSock, seqNum, header_len, type, udpPortTx
         type = client
@@ -99,6 +103,10 @@ class socket:
         return
 
     def accept(self):
+        #Receive SYN
+        #Send ACK
+        #Send SYN
+        #Receive ACK
         print("Attempting Connection")
         global udpSock, udpPortRx, seqNum, header_len, recAddress, type
         type = server
@@ -246,6 +254,7 @@ class socket:
             newStruct = self.updateStruct(SOCK352_SENTDATA, header_len, seqNum, 0, currPayLoadLen)
             lock.acquire()
             if(resend == True):
+                print("RESENT DROPPED PACKET seqNum: " + str(seqNum))
                 resend = False
                 lock.release()
                 continue
